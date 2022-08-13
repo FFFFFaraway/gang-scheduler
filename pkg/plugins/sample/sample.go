@@ -11,6 +11,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientv1 "k8s.io/client-go/listers/core/v1"
+	corev1helpers "k8s.io/component-helpers/scheduling/corev1"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 )
@@ -21,7 +22,7 @@ const (
 	PodGroupName = "pod-group.scheduling.bdap.com/name"
 )
 
-var _ framework.FilterPlugin = &Sample{}
+var _ framework.QueueSortPlugin = &Sample{}
 var _ framework.PermitPlugin = &Sample{}
 
 type Sample struct {
@@ -44,8 +45,36 @@ func (s *Sample) Name() string {
 	return Name
 }
 
-func (s *Sample) Filter(ctx context.Context, state *framework.CycleState, pod *v1.Pod, node *framework.NodeInfo) *framework.Status {
-	return framework.NewStatus(framework.Success, "")
+func (s *Sample) pgTime(p *v1.Pod) (time.Time, bool) {
+	pg, exist := p.Labels[PodGroupName]
+	if !exist || pg == "" {
+		return time.Time{}, false
+	}
+	cm, err := s.cmLister.ConfigMaps(p.Namespace).Get(pg)
+	if err != nil {
+		return time.Time{}, false
+	}
+	return cm.CreationTimestamp.Time, true
+}
+
+func (s *Sample) Less(p1 *framework.QueuedPodInfo, p2 *framework.QueuedPodInfo) bool {
+	pgt1, exist1 := s.pgTime(p1.Pod)
+	pgt2, exist2 := s.pgTime(p1.Pod)
+	// One is in pg while the other is not.
+	// Then p1 first if p1 is not in a pod group
+	if exist1 != exist2 {
+		return !exist1
+	}
+	// Neither in pod group
+	if !exist1 {
+		prio1 := corev1helpers.PodPriority(p1.Pod)
+		prio2 := corev1helpers.PodPriority(p2.Pod)
+		if prio1 != prio2 {
+			return prio1 > prio2
+		}
+		return p1.InitialAttemptTimestamp.Before(p2.InitialAttemptTimestamp)
+	}
+	return pgt1.Before(pgt2)
 }
 
 func (s *Sample) Permit(ctx context.Context, state *framework.CycleState, pod *v1.Pod, nodeName string) (*framework.Status, time.Duration) {

@@ -12,10 +12,12 @@ data:
     profiles:
     - schedulerName: scheduler-framework-sample
       plugins:
-        filter:
+        queueSort:
           enabled:
-          - name: "sample"
-        preBind:
+            - name: "sample"
+          disabled:
+            - name: "*"
+        permit:
           enabled:
           - name: "sample"
 ---
