@@ -18,8 +18,10 @@ import (
 
 const (
 	// Name is plugin name
-	Name         = "sample"
-	PodGroupName = "pod-group.scheduling.bdap.com/name"
+	Name                   = "sample"
+	PodGroupName           = "pod-group.scheduling.bdap.com/podgroup-configmap"
+	minAvailable           = "minAvailable"
+	scheduleTimeoutSeconds = "scheduleTimeoutSeconds"
 )
 
 var _ framework.QueueSortPlugin = &Sample{}
@@ -57,6 +59,15 @@ func (s *Sample) pgTime(p *v1.Pod) (time.Time, bool) {
 	return cm.CreationTimestamp.Time, true
 }
 
+func regPodLess(p1 *framework.QueuedPodInfo, p2 *framework.QueuedPodInfo) bool {
+	prio1 := corev1helpers.PodPriority(p1.Pod)
+	prio2 := corev1helpers.PodPriority(p2.Pod)
+	if prio1 != prio2 {
+		return prio1 > prio2
+	}
+	return p1.InitialAttemptTimestamp.Before(p2.InitialAttemptTimestamp)
+}
+
 func (s *Sample) Less(p1 *framework.QueuedPodInfo, p2 *framework.QueuedPodInfo) bool {
 	pgt1, exist1 := s.pgTime(p1.Pod)
 	pgt2, exist2 := s.pgTime(p1.Pod)
@@ -67,14 +78,12 @@ func (s *Sample) Less(p1 *framework.QueuedPodInfo, p2 *framework.QueuedPodInfo) 
 	}
 	// Neither in pod group
 	if !exist1 {
-		prio1 := corev1helpers.PodPriority(p1.Pod)
-		prio2 := corev1helpers.PodPriority(p2.Pod)
-		if prio1 != prio2 {
-			return prio1 > prio2
-		}
-		return p1.InitialAttemptTimestamp.Before(p2.InitialAttemptTimestamp)
+		return regPodLess(p1, p2)
 	}
-	return pgt1.Before(pgt2)
+	if !pgt1.Equal(pgt2) {
+		return pgt1.Before(pgt2)
+	}
+	return regPodLess(p1, p2)
 }
 
 func (s *Sample) Permit(ctx context.Context, state *framework.CycleState, pod *v1.Pod, nodeName string) (*framework.Status, time.Duration) {
@@ -91,22 +100,22 @@ func (s *Sample) Permit(ctx context.Context, state *framework.CycleState, pod *v
 		return framework.NewStatus(framework.Error, err.Error()), 0
 	}
 
-	minAvailableStr, exist := cm.Data["minAvailable"]
+	maStr, exist := cm.Data[minAvailable]
 	if !exist {
 		return framework.NewStatus(framework.Error, "minAvailable field not found in podgroup configmap"), 0
 	}
-	minAvailable, err := strconv.Atoi(minAvailableStr)
+	ma, err := strconv.Atoi(maStr)
 	if err != nil {
 		return framework.NewStatus(framework.Error, err.Error()), 0
 	}
-	if minAvailable <= 1 {
+	if ma <= 1 {
 		return framework.NewStatus(framework.Success, ""), 0
 	}
 
-	scheduleTimeoutSeconds := 10
-	scheduleTimeoutSecondsStr, exist := cm.Data["scheduleTimeoutSeconds"]
+	sts := 10
+	stsStr, exist := cm.Data[scheduleTimeoutSeconds]
 	if exist {
-		scheduleTimeoutSeconds, err = strconv.Atoi(scheduleTimeoutSecondsStr)
+		sts, err = strconv.Atoi(stsStr)
 		if err != nil {
 			return framework.NewStatus(framework.Error, err.Error()), 0
 		}
@@ -132,15 +141,15 @@ func (s *Sample) Permit(ctx context.Context, state *framework.CycleState, pod *v
 
 	current := running + waiting + 1
 
-	if current < minAvailable {
+	if current < ma {
 		msg := fmt.Sprintf("The count of podGroup %v/%v/%v is not up to minAvailable(%d) in Permit: running(%d), waiting(%d)",
-			pod.Namespace, podGroupName, pod.Name, minAvailable, running, waiting)
+			pod.Namespace, podGroupName, pod.Name, ma, running, waiting)
 		klog.V(3).Info(msg)
-		return framework.NewStatus(framework.Wait, msg), time.Duration(scheduleTimeoutSeconds) * time.Second
+		return framework.NewStatus(framework.Wait, msg), time.Duration(sts) * time.Second
 	}
 
 	klog.V(3).Infof("The count of podGroup %v/%v/%v is up to minAvailable(%d) in Permit: running(%d), waiting(%d)",
-		pod.Namespace, podGroupName, pod.Name, minAvailable, running, waiting)
+		pod.Namespace, podGroupName, pod.Name, ma, running, waiting)
 	s.handle.IterateOverWaitingPods(func(waitingPod framework.WaitingPod) {
 		if waitingPod.GetPod().Namespace == namespace && waitingPod.GetPod().Labels[PodGroupName] == podGroupName {
 			klog.V(3).Infof("Permit allows the pod: %v/%v", podGroupName, waitingPod.GetPod().Name)
