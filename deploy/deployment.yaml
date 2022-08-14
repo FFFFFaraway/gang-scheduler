@@ -10,7 +10,7 @@ data:
     leaderElection:
       leaderElect: false
     profiles:
-    - schedulerName: scheduler-framework-sample
+    - schedulerName: gang-scheduler
       plugins:
         queueSort:
           enabled:

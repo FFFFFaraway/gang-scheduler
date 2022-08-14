@@ -1,19 +1,10 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: running-pg
-  namespace: sw
-data:
-  minAvailable: "3"
-  scheduleTimeoutSeconds: "5"
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: running-example
+  name: regpod-example
   namespace: sw
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       app: busybox
@@ -21,7 +12,6 @@ spec:
     metadata:
       labels:
         app: busybox
-        pod-group.scheduling.bdap.com/podgroup-configmap: running-pg
     spec:
       schedulerName: gang-scheduler
       containers:

@@ -1,3 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pending-pg
+  namespace: sw
+data:
+  minAvailable: "3"
+  scheduleTimeoutSeconds: "5"
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -12,9 +21,9 @@ spec:
     metadata:
       labels:
         app: busybox
-        pod-group.scheduling.bdap.com/podgroup-configmap: example-pg
+        pod-group.scheduling.bdap.com/podgroup-configmap: pending-pg
     spec:
-      schedulerName: scheduler-framework-sample
+      schedulerName: gang-scheduler
       containers:
       - image: busybox
         name: busybox
