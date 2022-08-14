@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpu-pg
+  namespace: sw
+data:
+  minAvailable: "5"
+  scheduleTimeoutSeconds: "20"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu-example
+  namespace: sw
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: busybox
+  template:
+    metadata:
+      labels:
+        app: busybox
+        pod-group.scheduling.bdap.com/podgroup-configmap: gpu-pg
+    spec:
+      schedulerName: gang-scheduler
+      containers:
+        - image: busybox
+          name: busybox
+          command: ["sleep", "infinity"]
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+      tolerations:
+        - effect: NoSchedule
+          key: gpu
+          operator: Exists
