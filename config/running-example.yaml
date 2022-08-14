@@ -1,9 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: busybox
+  name: running-example
+  namespace: sw
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: busybox
@@ -11,11 +12,10 @@ spec:
     metadata:
       labels:
         app: busybox
+        pod-group.scheduling.bdap.com/podgroup-configmap: example-pg
     spec:
       schedulerName: scheduler-framework-sample
-      terminationGracePeriodSeconds: 5
       containers:
-      - image: busybox:latest
-        imagePullPolicy: IfNotPresent
-        name: busybox
-        command: ["sleep", "3600"]
+        - image: busybox
+          name: busybox
+          command: ["sleep", "infinity"]

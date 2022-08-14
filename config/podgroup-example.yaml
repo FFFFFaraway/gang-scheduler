@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-pg
+  namespace: sw
+data:
+  minAvailable: "3"
+  scheduleTimeoutSeconds: "5"

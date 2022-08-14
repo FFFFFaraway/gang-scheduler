@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pending-example
+  namespace: sw
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: busybox
+  template:
+    metadata:
+      labels:
+        app: busybox
+        pod-group.scheduling.bdap.com/podgroup-configmap: example-pg
+    spec:
+      schedulerName: scheduler-framework-sample
+      containers:
+      - image: busybox
+        name: busybox
+        command: ["sleep", "infinity"]
