@@ -1,7 +1,7 @@
 # simple-gang-scheduler
 
 [![Go](https://github.com/FFFFFaraway/gang-scheduler/actions/workflows/go.yml/badge.svg)](https://github.com/FFFFFaraway/gang-scheduler/actions/workflows/go.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/angao/scheduler-framework-sample)](https://goreportcard.com/report/github.com/angao/scheduler-framework-sample)
+[![Go Report Card](https://goreportcard.com/badge/github.com/FFFFFaraway/gang-scheduler)](https://goreportcard.com/report/github.com/FFFFFaraway/gang-scheduler)
 
 This repo is a simple gang scheduler implemented by scheduler framework in Kubernetes. This scheduler have a `sample` plugin, and implements `queue sort` and `permit` extension points. More information can be found in [this blog](https://fffffaraway.github.io/2022/08/14/利用Scheduling-Framework实现一个简单的gang调度器/).
 
