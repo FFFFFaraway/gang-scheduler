@@ -15,7 +15,7 @@ kubectl apply -f deploy/rbac.yaml
 kubectl apply -f deploy/deployment.yaml
 ```
 
-You can change the scheduler name by edit the KubeSchedulerConfiguration in deploy/deployment.yaml file. Default name is `gang-scheduler`, and the default namespace is `kube-system`.
+You can change the scheduler name by edit the `KubeSchedulerConfiguration` in `deploy/deployment.yaml` file. Default name is `gang-scheduler`, and the default namespace is `kube-system`.
 
 ## How to use
 
