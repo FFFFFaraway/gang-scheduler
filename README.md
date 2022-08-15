@@ -25,7 +25,7 @@ The scheduler use configmap to record podgroup information. For example:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-	# PodGroup name
+  # PodGroup name
   name: pending-pg
   namespace: sw
 data:
@@ -56,7 +56,7 @@ spec:
         # This label bind this pod to the 'pending-pg' PodGroup
         pod-group.scheduling.bdap.com/podgroup-configmap: pending-pg
     spec:
-    	# use our sheduler
+      # use our sheduler
       schedulerName: gang-scheduler
       containers:
       - image: busybox
